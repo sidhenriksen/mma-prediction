@@ -41,22 +41,26 @@ def get_page(url):
 
     if 'http://' not in url:
         url = 'http://'+url
-    try:
-        url_generator = urllib2.urlopen(url,timeout=2)
-        page = url_generator.readlines()
-    except IOError:
+
+    n_attempts = 3
+
+    page = ['Empty page']
+    
+    for k in range(n_attempts):
         try:
             url_generator = urllib2.urlopen(url,timeout=2)
             page = url_generator.readlines()
+            break
         except IOError:
-            return ['Empty page']
+            if k == n_attempts: return ['Empty page']
+
 
     return page
 
 
 def parse_page(page):
     '''
-    Parses a Fighter's profile page, obtains stats and a list of fighhts
+    Parses a Fighter's profile page, obtains stats and a list of fights
 
     Parameters
     ----------
@@ -77,7 +81,15 @@ def parse_page(page):
     fights = parse_fights(page)
 
     fighter_stats['Fights'] = fights
-    name = fights[0]['Fighter'][0]
+    try:
+        if len(fights) == 0:        
+            name = 'Unknown fighter'
+        else:
+            name = fights[0]['Fighter'][0]
+            
+    except IndexError:
+        import pdb; pdb.set_trace()
+        
     fighter_stats['Name'] = name
 
     urls = get_fighter_urls(page)
@@ -154,7 +166,8 @@ def parse_fights(page):
     fights : list
     	Contains all the fights listed on the fighter's profile page
 
-    '''    ctr = 0
+    '''    
+    ctr = 0
     fights = []
     open_td = False # this is if the table row has opened
     open_outcome = False # this is if the fight outcome has been mentioned
@@ -283,6 +296,9 @@ def find_url(S):
     return urls_fx
 
 
+######################################
+### These are conversion functions ###
+######################################
 def mins_to_sec(S):
     S2 = S.replace(':',' ').split()
     mins = float(S2[0])
