@@ -31,7 +31,7 @@ def get_url(name):
 
         if 'fighter-details' in S:
             return S        
-
+        
     return 'NaN'
 
     
