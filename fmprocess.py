@@ -191,9 +191,10 @@ def get_fights(fighter,dbfile='fighterdb.sqlite'):
 
     Parameters
     ----------
-    fighters : dict
-    	       A fighters dict, obtained by crawling Fightmetric 
-	       (stored in fighters.pickle).
+    fighter : str
+    	      Name of the fighter
+    	       
+	      
 
     Returns
     -------
@@ -218,64 +219,47 @@ def get_fights(fighter,dbfile='fighterdb.sqlite'):
     return fights
 
 def build_features(fighters):
-    '''
-    Builds a feature matrix for classification/regression.
-    
-    Parameters
-    ----------
-    fighters : dict
-	       Contains all fighter stats; obtained from crawling Fightmetric
-    	       (stored in fighters.pickle).
-    fights : list (optional)
-    	       These are the filtered fights, obtained from calling get_fights(fighters)
 
-    Returns
-    -------
-    X : pd.DataFrame
-	Training data for regressor/classifier. Each column corresponds to a feature
-	and each row to an observation (fight)
-    y : np.array
-    	Fight outcomes. 0 means fighter1 won, 1 means fighter2 won.
-    '''
-    y = np.zeros(len(fights))
-
+    fighterNames = fighters.keys()
     fights = []
-    for fighterName in fighters.keys():
+    for name in fighterNames:
         
-        currentFights = get_fights(fighterName)
+        currentFights = get_fights(name)
         
         fights.extend(currentFights)
         
 
-    for i,fight in enumerate(fights):
-        
-        fighter1=fight['fighter1']
-        
-        fighter2=fight['fighter2']
+    exampleFeatureVector = build_matchup(fighters[fighterNames[0]],\
+                                         fighters[fighterNames[1]])
 
-        x = build_matchup(fighters,fighter1,fighter2)
-        
-        if type(x) == type(None):
-            import pdb; pdb.set_trace()
-        if i == 0:
-            Xm = np.zeros([len(fights),len(x.columns)])
-
-        Xm[i,:] = x.as_matrix()
-
-        if fight['winner'] == fighter1:
-            y[i] = 0.0
-        else:
-            y[i] = 1.0
-
+    X = pd.DataFrame(index=np.arange(len(fights)),\
+                     columns=exampleFeatureVector.columns)
     
-    X = pd.DataFrame(Xm,columns=x.columns)
-    # Replace nans with means
-    for f_dob in ['f1_DOB','f2_DOB']:
-        f_no_age=np.array([np.isnan(float(k)) for k in X.loc[:,f_dob]])
-        f_age_mean=np.mean(X.loc[~f_no_age,f_dob])        
-        X.loc[f_no_age,f_dob] = f_age_mean 
+    y = pd.DataFrame(np.arange(len(fights)),columns=['outcome'])
+
+    keepIdx = np.zeros(len(y))
+    for i,fight in enumerate(fights):        
+        f1Name = fight['fighter1']
+        f2Name = fight['fighter2']
+
+        if (f1Name not in fighters.keys()) or (f2Name not in fighters.keys()):
+            continue
+
+        keepIdx[i] = 1
+        
+        currentFeatureVector = build_matchup(fighters[f1Name],\
+                                             fighters[f2Name])
+        
+        X.iloc[i,:] = np.array(currentFeatureVector)
+
+        y.iloc[i] = np.double(fight['winner'] == f1Name)
+
+    X = X.iloc[keepIdx,:]
+    y = y.iloc[keepIdx,:]
 
     return X,y
+        
+    
 
 def build_matchup(fighter1,fighter2):
     ''' 
@@ -314,7 +298,7 @@ def build_matchup(fighter1,fighter2):
             if cf1=='--':
                 cf1=np.nan
             else:
-                cf1=float(cf1[-4:])
+                cf1=2017-float(cf1[-4:])
 
             if cf2=='--':
                 cf2=np.nan
