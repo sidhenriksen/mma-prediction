@@ -184,61 +184,6 @@ def compute_graph_metrics(G,base_node):
     return PR
     
 
-"""
-def process_fight(fight):
-    '''
-    Takes a fighter-centred fight dict, obtained by crawling 
-    Fightmetric and converts it into a fighter-neutral dict.
-    The field 'Result' now contain the winner.
-    
-    Parameters
-    ----------
-    fight : dict
-    	    fight dict obtained from crawling Fightmetric
-    
-    Returns
-    -------
-    new_fight : dict
-    	    fight dict with a fight-centred representation (e.g.
-    	    winner is given as name, not by reference to whose fight
-    	    fight dict this is).
-
-    '''
-    new_fight = copy.deepcopy(fight)
-
-    fighters = new_fight['Fighter']
-    _ = new_fight.pop('Fighter')
-    sorted_fighters = sorted(fighters)
-        
-    # set the appropriate winner (from win and loss to actual name of fighter)
-    if new_fight['outcome'] == 'win':
-        winner = fighters[0]
-    elif new_fight['outcome'] == 'loss':
-        winner = fighters[1]
-    else:
-        winner='Draw'
-
-
-    # if fighters [A,B] come in the order [B,A], we will flip the entries
-    # such that we don't end up coding these guys twice. Could probably
-    # do this with sets, but think there were some iterablility issues
-    flip = sorted_fighters != fighters
-    
-    if flip:
-        for field in new_fight:
-            temp = fight[field]
-            if type(temp)==list and (field != 'Event'):
-                new_fight[field][0]=fight[field][1]
-                new_fight[field][1]=fight[field][0]
-
-    new_fight['Result'] = winner
-    new_fight['Fighters'] = sorted_fighters
-    _= new_fight.pop('outcome')
-
-    return new_fight
-
-"""
-
 def get_fights(fighter,dbfile='fighterdb.sqlite'):
     '''
     Takes a fighters dict, processes the fights and returns a list of
@@ -256,8 +201,12 @@ def get_fights(fighter,dbfile='fighterdb.sqlite'):
     	     A list of all the fights from fighters   
     '''
 
-    conn = sqlite3.connect(dbfile)
-    cur = conn.cursor()
+    # this lets us optionally pass a cursor instead of the database file name
+    if type(dbfile)==str:
+        conn = sqlite3.connect(dbfile)
+        cur = conn.cursor()
+    else:
+        cur = dbfile
 
     data = sql_to_list('Fights',cur)
 
@@ -349,46 +298,17 @@ def build_matchup(fighter1,fighter2):
 
     feature_list = ['height','reach','sapm','slpm','stance','stracc',\
                     'strdef','subavg','tdacc','tdavg','tddef',\
-                    'weight','dob','wins','losses','cumtime',\
-                    'f1','f2','f3','f4','f5']
+                    'weight','dob','wins','losses','cumtime']
 
-    full_feature_list = ['f'+str(i)+'_'+feature for feature in feature_list for i in range(1,3)]
-    X = pd.DataFrame(columns=full_feature_list,dtype=float)
+    tagged_features = ['f1_'+f for f in feature_list]+['f2_'+f for f in feature_list]
+    X = pd.DataFrame(columns=tagged_features,dtype=float)
 
-    f1_fights = fighters[fighter1]['Fights']
-    f2_fights = fighters[fighter2]['Fights']
-
-
-    # This is to create the binary features for the last K fights
-    K_features = ['f1','f2','f3','f4','f5']
-    last_K = 5 # last K fights
-    n1_fights = 0; n2_fights = 0
-    f1_vec = [0]*last_K; f2_vec = [0]*last_K
-    for i in range(last_K):
-        if i < len(f1_fights):
-            f1_fight = f1_fights[i]
-            f1_outcome = (f1_fight['winner']==fighter1)*2 - 1
-            f1_vec[i] = f1_outcome
-
-        if i < len(f2_fights):
-            f2_fight = f2_fights[i]
-            f2_outcome = (f2_fight['winner']==fighter2)*2 - 1
-            f2_vec[i] = f2_outcome
-
-
-    exclude_features = ['Wins','Losses','Cum time']
-    exclude_features.extend(K_features)
     for feature in feature_list:
         f1='f1_'+feature
         f2='f2_'+feature
-
-        if feature in K_features:
-            cf1 = f1_vec[K_features.index(feature)]
-            cf2 = f2_vec[K_features.index(feature)]
-
-        if feature not in exclude_features:
-            cf1=fighters[fighter1][feature]
-            cf2=fighters[fighter2][feature]
+        
+        cf1=fighter1[feature]
+        cf2=fighter2[feature]
             
         if feature == 'dob':
             if cf1=='--':
@@ -411,19 +331,6 @@ def build_matchup(fighter1,fighter2):
                 cf2=0.0
             else:
                 cf2=1.0
-
-        if feature == 'Wins':
-            cf1 = np.sum([1 for ft in f1_fights if ft['outcome']=='win'])
-            cf2 = np.sum([1 for ft in f2_fights if ft['outcome']=='win'])
-    
-        if feature == 'Losses':
-            cf1 = np.sum([1 for ft in f1_fights if ft['outcome']=='loss'])
-            cf2 = np.sum([1 for ft in f2_fights if ft['outcome']=='loss'])
-
-        if feature == 'Cum time':
-            cf1 = np.sum([ft['Time'] for ft in f1_fights])
-            cf2 = np.sum([ft['Time'] for ft in f2_fights])
-
 
         X.loc[0,f1]=float(cf1)
         X.loc[0,f2]=float(cf2)
@@ -470,68 +377,25 @@ def get_fighters(dbfile='fighterdb.sqlite'):
         name = entry.pop('name')
         _ = entry.pop('id')
 
+        fights = get_fights(name,cur)
+        
+        entry['wins'] = compute_wins(fights,name)
+        entry['losses'] = compute_losses(fights,name)
+        entry['cumtime'] = compute_cumtime(fights)
+
         dataDict[name] = entry
 
+    conn.close()
     return dataDict
 
+def compute_wins(fights,name):
+    y = np.sum([fight['winner']==name for fight in fights])
+    return y
 
-    
+def compute_losses(fights,name):
+    y = np.sum([fight['winner']!=name for fight in fights])
+    return y
 
-"""
-def build_feature(fighter):
-'''
-    Builds a single feature vector for a given fighter
-
-    Parameters
-    ----------
-    fighter : dict
-    	       fighter dict, contained in fighters.pickle
-
-
-    Returns
-    -------
-    X : pd.DataFrame
-    	A single-row data frame corresponding to our feature vector   
-
-
-    feature_list = ['Height','Reach','SApM','SLpM','STANCE','Str. Acc.',\
-                    'Str. Def','Sub. Avg.','TD Acc.','TD Avg.','TD Def.',\
-                    'Weight','DOB','Wins','Losses','Cum time']
-
-    X = pd.DataFrame(columns=feature_list,dtype=float)
-
-    fights = fighter['Fights']
-
-    for feature in feature_list:
-        
-        if feature not in ['Wins','Losses','Cum time']:
-            cf=fighter[feature]
-            
-        if feature == 'DOB':
-            if cf=='--':
-                cf=np.nan
-            else:
-                cf=float(cf[-4:])
-
-
-        if feature == 'STANCE':
-            if cf == 'Orthodox':
-                cf=0.0
-            else:
-                cf=1.0
-
-
-        if feature == 'Wins':
-            cf = np.sum([1 for ft in fights if ft['outcome']=='win'])
-    
-        if feature == 'Losses':
-            cf = np.sum([1 for ft in fights if ft['outcome']=='loss'])
-
-        if feature == 'Cum time':
-            cf = np.sum([ft['Time'] for ft in fights])
-
-        X.loc[0,feature]=float(cf)
-
-
-    return X
-"""
+def compute_cumtime(fights):
+    y = np.sum([fight['time'] for fight in fights])
+    return y
