@@ -18,7 +18,7 @@ def init_db(dbfile='fighterdb.sqlite'):
     Nothing.
     '''
 
-    conn = sqlite3.connect(dbfile)
+    conn = sqlite3.connect(dbfile,timeout=10)
     cur = conn.cursor()
 
     cur.executescript('''
@@ -73,6 +73,8 @@ def init_db(dbfile='fighterdb.sqlite'):
     ''')
 
     conn.commit()
+
+    conn.close()
     
 def crawl(initFighter='Mark Hunt',dbfile='fighterdb.sqlite',K=2):
     '''
@@ -103,8 +105,9 @@ def crawl(initFighter='Mark Hunt',dbfile='fighterdb.sqlite',K=2):
         init_db()
         
 
+
     # init sqlite stuff
-    conn = sqlite3.connect(dbfile)
+    conn = sqlite3.connect(dbfile,timeout=10)
     
     cur = conn.cursor()
 
@@ -207,8 +210,8 @@ def write_fights_to_database(fights,cur):
         sortedFighters = sorted(fight['Fighter'])
         
         bothFighters = sortedFighters[0]+sortedFighters[1]
-        
-        fightId = hash(bothFighters+fight['Event'])
+
+        fightId = hash(bothFighters+fight['Event'][0])
     
 
         if fight['outcome'] == 'win':
@@ -312,6 +315,8 @@ if __name__ == "__main__":
                      'Mark Hunt','Stipe Miocic']
 
 
+    initFighters = ['Demetrious Johnson']
+    
     for fighter in initFighters:
         print 'Crawling using %s as root'%fighter
         crawl(initFighter=fighter,K=4)
