@@ -230,12 +230,16 @@ def build_features(fighters):
         
 
     exampleFeatureVector = build_matchup(fighters[fighterNames[0]],\
-                                         fighters[fighterNames[1]])
+                                         fighters[fighterNames[1]],\
+                                         asPandas=True)
 
-    X = pd.DataFrame(index=np.arange(len(fights)),\
-                     columns=exampleFeatureVector.columns)
-    
-    y = pd.DataFrame(np.arange(len(fights)),columns=['outcome'])
+    #    X = pd.DataFrame(index=np.arange(len(fights)),\
+        #                     columns=exampleFeatureVector.columns)
+
+    #    y = pd.DataFrame(np.arange(len(fights)),columns=['outcome'])
+
+    X = np.zeros([len(fights),len(exampleFeatureVector)])
+    y = np.zeros(len(fights))
 
     keepIdx = np.zeros(len(y))
     for i,fight in enumerate(fights):        
@@ -249,19 +253,22 @@ def build_features(fighters):
         
         currentFeatureVector = build_matchup(fighters[f1Name],\
                                              fighters[f2Name])
-        
-        X.iloc[i,:] = np.array(currentFeatureVector)
+        import pdb; pdb.set_trace()
+        X[i,:] = np.array(currentFeatureVector)
 
-        y.iloc[i] = np.double(fight['winner'] == f1Name)
+        y[i] = np.double(fight['winner'] == f1Name)
 
-    X = X.iloc[keepIdx,:]
-    y = y.iloc[keepIdx,:]
+    X = X[np.where(keepIdx)[0],:]
+    y = y[np.where(keepIdx)[0],:]
 
-    return X,y
+    X2 = pd.DataFrame(X,index=np.arange(len(fights)),\
+                      columns=exampleFeatureVector.columns)
+
+    return X2,y
         
     
 
-def build_matchup(fighter1,fighter2):
+def build_matchup(fighter1,fighter2,asPandas=False):
     ''' 
     Builds a single feature vector for a fight between two fighters.
     Note that this only considers fighter stats at the present moment
@@ -319,7 +326,10 @@ def build_matchup(fighter1,fighter2):
         X.loc[0,f1]=float(cf1)
         X.loc[0,f2]=float(cf2)
 
-    return X
+    if asPandas:        
+        return X
+    else:
+        return X.as_matrix()
 
 
 def sql_to_list(tableName,cur):
