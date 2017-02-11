@@ -36,12 +36,12 @@ printouts about classifier performance and feature importances.
 To train the classifier, run:
 
 	import classifier
-	myClassifier = classifier.buildClassifier()
+	myClassifier = classifier.build_classifier()
 	
 And now we can do interesting things, like make it predict the outcome of matchups
 it has never seen before. For example:
 
-	classifier.predictFight(myClassifier,'Conor McGregor','Nick Diaz')
+	classifier.predict_fight(myClassifier,'Conor McGregor','Nick Diaz')
 	
 Note that this has to be interpreted with some caution, particularly when you're
 dealing with cases that the classifier does not see very often. For example,

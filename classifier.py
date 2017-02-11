@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sklearn.ensemble as sken
 
-def buildClassifier():
+def build_classifier():
     fighters = fmprocess.get_fighters()
 
     #X,y = fmprocess.build_features(fighters)
@@ -18,7 +18,7 @@ def buildClassifier():
 
     return myClassifier
 
-def predictFight(myClassifier,fighter1Name,fighter2Name):
+def predict_fight(myClassifier,fighter1Name,fighter2Name):
     fighters = fmprocess.get_fighters()
     fighter1 = fighters[fighter1Name]
     fighter2 = fighters[fighter2Name]
