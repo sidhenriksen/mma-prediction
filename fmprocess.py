@@ -227,48 +227,45 @@ def build_features(fighters):
         currentFights = get_fights(name)
         
         fights.extend(currentFights)
-        
 
-    exampleFeatureVector = build_matchup(fighters[fighterNames[0]],\
-                                         fighters[fighterNames[1]],\
-                                         asPandas=True)
+    X = []
 
-    #    X = pd.DataFrame(index=np.arange(len(fights)),\
-        #                     columns=exampleFeatureVector.columns)
+    y = []
 
-    #    y = pd.DataFrame(np.arange(len(fights)),columns=['outcome'])
-
-    X = np.zeros([len(fights),len(exampleFeatureVector)])
-    y = np.zeros(len(fights))
-
-    keepIdx = np.zeros(len(y))
-    for i,fight in enumerate(fights):        
+    for fight in fights:
         f1Name = fight['fighter1']
         f2Name = fight['fighter2']
 
         if (f1Name not in fighters.keys()) or (f2Name not in fighters.keys()):
             continue
-
-        keepIdx[i] = 1
         
         currentFeatureVector = build_matchup(fighters[f1Name],\
                                              fighters[f2Name])
-        import pdb; pdb.set_trace()
-        X[i,:] = np.array(currentFeatureVector)
 
-        y[i] = np.double(fight['winner'] == f1Name)
+        X.append(currentFeatureVector)
 
-    X = X[np.where(keepIdx)[0],:]
-    y = y[np.where(keepIdx)[0],:]
+        y.append(np.double(fight['winner'] == f1Name))
+        
 
-    X2 = pd.DataFrame(X,index=np.arange(len(fights)),\
-                      columns=exampleFeatureVector.columns)
+    X = pd.concat(X)
+    
+    y = np.array(y)
 
-    return X2,y
+    
+    # if we're missing date of birth for one fighter, set their date of births to be the same    
+    missingF1DobIdx = np.isnan(X.f1_dob)
+    missingF2DobIdx = np.isnan(X.f2_dob)
+    missingBothDobIdx = missingF1DobIdx & missingF2DobIdx
+    X.loc[missingF1DobIdx,'f1_dob'] = X.loc[missingF1DobIdx,'f2_dob'].values
+    X.loc[missingF2DobIdx,'f2_dob'] = X.loc[missingF2DobIdx,'f1_dob'].values
+    X.loc[missingBothDobIdx,'f1_dob'] = 1988
+    X.loc[missingBothDobIdx,'f2_dob'] = 1988
+        
+    return X,y
         
     
 
-def build_matchup(fighter1,fighter2,asPandas=False):
+def build_matchup(fighter1,fighter2):
     ''' 
     Builds a single feature vector for a fight between two fighters.
     Note that this only considers fighter stats at the present moment
@@ -326,10 +323,10 @@ def build_matchup(fighter1,fighter2,asPandas=False):
         X.loc[0,f1]=float(cf1)
         X.loc[0,f2]=float(cf2)
 
-    if asPandas:        
-        return X
-    else:
-        return X.as_matrix()
+
+
+    return X
+
 
 
 def sql_to_list(tableName,cur):
@@ -371,25 +368,11 @@ def get_fighters(dbfile='fighterdb.sqlite'):
         name = entry.pop('name')
         _ = entry.pop('id')
 
-        fights = get_fights(name,cur)
-        
-        entry['wins'] = compute_wins(fights,name)
-        entry['losses'] = compute_losses(fights,name)
-        entry['cumtime'] = compute_cumtime(fights)
-
         dataDict[name] = entry
 
     conn.close()
     return dataDict
 
-def compute_wins(fights,name):
-    y = np.sum([fight['winner']==name for fight in fights])
-    return y
 
-def compute_losses(fights,name):
-    y = np.sum([fight['winner']!=name for fight in fights])
-    return y
 
-def compute_cumtime(fights):
-    y = np.sum([fight['time'] for fight in fights])
-    return y
+

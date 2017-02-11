@@ -42,7 +42,10 @@ def init_db(dbfile='fighterdb.sqlite'):
     tddef	REAL,
     tdavg	REAL,
     stracc	REAL,
-    strdef	REAL
+    strdef	REAL,
+    wins	INTEGER,
+    losses	INTEGER,
+    cumtime	REAL
     );
 
     CREATE TABLE FighterURLs (
@@ -221,7 +224,6 @@ def write_fights_to_database(fights,cur):
         else:
             winner = 'Draw'
 
-
         # Do a quick check
         cur.execute('SELECT fighter1,fighter2 FROM Fights WHERE id == ?',(fightId,))
         matches = cur.fetchall()
@@ -290,10 +292,30 @@ def write_page_to_database(fighterURL,cur):
 
     stats['url'] = fighterURL
 
+    stats['wins'] = compute_wins(fights)
+    
+    stats['losses'] = compute_losses(fights)
+
+    stats['cumtime'] = compute_cumtime(fights)
+
     write_fighter_to_database(stats,urls,cur)
 
     write_fights_to_database(fights,cur)
     
+    
+def compute_wins(fights):
+    y = np.sum([fight['outcome']=='win' for fight in fights])
+    return y
+
+def compute_losses(fights):
+    y = np.sum([fight['outcome']=='loss' for fight in fights])
+    return y
+
+def compute_cumtime(fights):
+    y = np.sum([fight['Time'] for fight in fights])
+    return y
+
+
 
 def strip_key(mykey):
 
@@ -314,8 +336,6 @@ if __name__ == "__main__":
                      'Jon Jones','Alexander Gustafsson',\
                      'Mark Hunt','Stipe Miocic']
 
-
-    initFighters = ['Demetrious Johnson']
     
     for fighter in initFighters:
         print 'Crawling using %s as root'%fighter
