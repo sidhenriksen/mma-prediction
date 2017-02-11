@@ -5,7 +5,10 @@ and generating fight predictions based on said data.
 ## Usage:
 First, clone the repository.
 ### Building the database
-Navigate to the repository directory, and execute "python fmcrawler_sql.py".
+Navigate to the repository directory, and execute 
+
+	python fmcrawler_sql.py
+	
 This will crawl the Fightmetric website. Crawling is kept at an artificially
 slow rate since a high crawl rate puts a lot of stress on the host and
 generally results in a ban. Thus, crawling the page exhaustively and
