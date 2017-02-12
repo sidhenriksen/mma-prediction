@@ -6,14 +6,38 @@ import matplotlib.pyplot as plt
 import sklearn.ensemble as sken
 import sklearn.linear_model as sklin
 
-def build_classifier(X=None,y=None):
+def build_classifier(X=None,y=None,classifierType='logistic'):
+    ''' Convenience function to build a classifier.
+    
+    Parameters
+    ----------
+    X : pandas DataFrame (optional)
+    	The input feature matrix; obtained from calling fmprocess.build_features.
+    	This will get built if not provided, which can take a long time.
+
+    y : numpy array (optional)
+    	Output array; similarly obtained from calling fmprocess.build_features
+
+    classifierType : str
+    	Type of classifier, either 'logistic' or 'randomforest'. Default is logistic regression.
+
+    Returns
+    -------
+    myClassifier : sklearn classifier
+	Either logistic regression or random forest classifier.
+
+    '''
     fighters = fmprocess.get_fighters()
 
     if X is None or y is None: # only call this if it's not fed as input
         X,y = fmprocess.build_features(fighters)
 
-#    myClassifier = sken.RandomForestClassifier()
-    myClassifier = sklin.LogisticRegression()
+    if classifierType == 'logistic':
+        myClassifier = sklin.LogisticRegression()
+        
+    elif classifierType == 'randomforest':
+        myClassifier = sken.RandomForestClassifier()
+
     myClassifier.meanNorm = X.mean(0)
     myClassifier.sdNorm = X.std(0)
     myClassifier.normalise = lambda x:(x-myClassifier.meanNorm)/myClassifier.sdNorm
@@ -25,6 +49,30 @@ def build_classifier(X=None,y=None):
     return myClassifier
 
 def predict_fight(myClassifier,fighter1Name,fighter2Name,predict_proba=True):
+    ''' Predicts a fight outcome between two (potentially unseen) fighters.
+    Prints out the result (in probability by default)
+
+    Parameters
+    ----------
+    myClassifier : sklearn classsifier
+    	Obtained from calling buildClassifier.
+
+    fighter1Name : str
+    	Full name of the first fighter.
+
+    fighter2Name : str
+    	Full name of the second fighter.
+
+    predict_proba : bool (optional)
+    	Boolean specifying whether to predict probability or a discrete outcome (default is to predict probability)
+
+    Returns
+    -------
+    winner : str
+    	Name of predicted winner.
+
+    '''
+    
     fighters = fmprocess.get_fighters()
     fighter1 = fighters[fighter1Name]
     fighter2 = fighters[fighter2Name]
