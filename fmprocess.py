@@ -244,7 +244,7 @@ def build_features(fighters):
 
         X.append(currentFeatureVector)
 
-        y.append(np.double(fight['winner'] == f1Name))
+        y.append(np.double(fight['winner'] == f2Name))
         
 
     X = pd.concat(X)

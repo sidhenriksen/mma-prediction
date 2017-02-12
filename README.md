@@ -72,5 +72,6 @@ for classification (fmprocess.py).
 
 ### Classifier
 The classifier is a simple logistic regression model which predicts the
-outcome of fights which the classifier has not been trained on. A random forest
-classifier is also used which gives substantially better performance.
+outcome of fights which the classifier has not been trained on. Validation is
+on-going using both logistic regression and random forest classifiers. 
+

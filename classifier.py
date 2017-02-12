@@ -4,47 +4,64 @@ import sklearn.linear_model as sklin
 import numpy as np
 import matplotlib.pyplot as plt
 import sklearn.ensemble as sken
+import sklearn.linear_model as sklin
 
-def build_classifier():
+def build_classifier(X=None,y=None):
     fighters = fmprocess.get_fighters()
 
-    #X,y = fmprocess.build_features(fighters)
-
-    X = (X-X.mean(0))/X.std(0) # normalise data
+    if X is None or y is None: # only call this if it's not fed as input
+        X,y = fmprocess.build_features(fighters)
 
     myClassifier = sken.RandomForestClassifier()
+#    myClassifier = sklin.LogisticRegression()
+    myClassifier.meanNorm = X.mean(0)
+    myClassifier.sdNorm = X.std(0)
+    myClassifier.normalise = lambda x:(x-myClassifier.meanNorm)/myClassifier.sdNorm
+    
+    X = myClassifier.normalise(X)
     
     myClassifier.fit(X,y)
 
     return myClassifier
 
-def predict_fight(myClassifier,fighter1Name,fighter2Name):
+def predict_fight(myClassifier,fighter1Name,fighter2Name,predict_proba=True):
     fighters = fmprocess.get_fighters()
     fighter1 = fighters[fighter1Name]
     fighter2 = fighters[fighter2Name]
 
     x = fmprocess.build_matchup(fighter1,fighter2)
-    
-    p = myClassifier.predict_proba(x)[0][0]
 
-    if p < 0.5:
-        flipP = 1-p
-        winner = fighter1Name
-    else:
-        flipP = p
-        winner = fighter2Name
+    x = myClassifier.normalise(x)
 
-    print '%.3f chance that %s wins'%(flipP,winner)
-    
+    if predict_proba:
+        p = myClassifier.predict_proba(x)[0]
+
+        if p[0] > 0.5:
+            realP = p[0]
+            winner = fighter1Name
+        else:
+            realP = p[1]
+            winner = fighter2Name
+
+        print '%.2f%% chance of %s winning.'%(realP*100,winner)
+            
+    p = int(myClassifier.predict(x))
+
+    winner = (fighter1Name,fighter2Name)[p]
+        
+    print '%s wins.'%winner
+
+
+
+    return winner
 
 
 if __name__ == "__main__":
 
     fighters = fmprocess.get_fighters()
 
-    #X,y = fmprocess.build_features(fighters)
-
-    X = (X-X.mean(0))/X.std(0) # normalise data
+    print 'Building features (this takes a while)'
+#    X,y = fmprocess.build_features(fighters)
     
     p = 0.75
 
