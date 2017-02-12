@@ -12,8 +12,8 @@ def build_classifier(X=None,y=None):
     if X is None or y is None: # only call this if it's not fed as input
         X,y = fmprocess.build_features(fighters)
 
-    myClassifier = sken.RandomForestClassifier()
-#    myClassifier = sklin.LogisticRegression()
+#    myClassifier = sken.RandomForestClassifier()
+    myClassifier = sklin.LogisticRegression()
     myClassifier.meanNorm = X.mean(0)
     myClassifier.sdNorm = X.std(0)
     myClassifier.normalise = lambda x:(x-myClassifier.meanNorm)/myClassifier.sdNorm
