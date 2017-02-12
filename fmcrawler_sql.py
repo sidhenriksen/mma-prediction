@@ -182,7 +182,7 @@ def add_to_url_list(fighterURLs,processed,cur):
     	0 or 1 denoting whether this page has been processed
 
     cur : sqlite3 cursor
-    	% Cursor pointing to the database
+    	Cursor pointing to the database.
 
     Returns
     -------
@@ -208,6 +208,21 @@ def add_to_url_list(fighterURLs,processed,cur):
 
 
 def write_fights_to_database(fights,cur):
+    ''' Writes list of fight dicts to the Fights table of the database.
+
+    Parameters
+    ----------
+    fights : list
+    	A list of dicts, with each dict giving details of a given fight.
+
+    cur : sqlite3 cursor
+	Cursor pointing to the database.
+
+    Returns
+    -------
+    Nothing.
+
+    '''
     
     for fight in fights:
         sortedFighters = sorted(fight['Fighter'])
@@ -247,6 +262,25 @@ def write_fights_to_database(fights,cur):
 
 
 def write_fighter_to_database(stats,urls,cur):
+    ''' Writes a fighter's stats to the database.
+
+    Parameters
+    ----------
+    stats : dict
+    	Contains stats for the fighter; obtained from parsing the Fightmetric page.
+
+    urls : list
+    	List of urls on that fighter's page. This gets added to a separate table.
+
+    cur : sqlite3 cursor
+	Cursor pointing to the database.
+
+    Returns
+    -------
+    Nothing
+
+    '''
+    
     key2Sql = {key:strip_key(key) for key in stats.keys()}
     
     fighterURL = stats['url']
@@ -281,6 +315,22 @@ def write_fighter_to_database(stats,urls,cur):
     
             
 def write_page_to_database(fighterURL,cur):
+    ''' This is a convenient wrapper for write_fighter_to_database and
+    write_fights_to_database.
+
+    Parameters
+    ----------
+    fighterURL : str
+    	A valid Fightmetric.com URL for a fighter's profile page.
+
+    cur : sqlite3 cursor
+	A cursor pointing to the database.
+
+    Returns
+    -------
+    Nothing
+
+    '''
 
     fighterPage = fm.get_page(fighterURL)
 
@@ -318,11 +368,22 @@ def compute_cumtime(fights):
 
 
 def strip_key(mykey):
+    ''' Strips the string of periods and white space and converts to lower case.
+
+    Parameters
+    ----------
+    mykey : str
+    
+    Returns
+    -------
+    newkey : str
+    	A version of the input string with commas, white space, and capitalisation removed.
+
+    '''
 
     newkey = mykey.replace('.','').replace(' ','').lower()
 
     return newkey
-
 
 
 

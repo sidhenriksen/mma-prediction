@@ -1,6 +1,4 @@
 import urllib2,re,google
-from fetch import strip_html
-
 
 def get_url(name):
     '''
@@ -295,6 +293,9 @@ def find_url(S):
 
     return urls_fx
 
+def strip_html(data):
+    p = re.compile(r'<.*?>')
+    return p.sub('',data)
 
 ######################################
 ### These are conversion functions ###
